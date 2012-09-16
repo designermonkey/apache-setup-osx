@@ -1,0 +1,26 @@
+#!/bin/sh
+
+################################################################################
+###	CHECK SCRIPT INVOCATION AND SET CONSTANTS
+if [[ $(whoami) != "root" ]]; then
+	echo "ERROR! Script needs root access. Please run as sudo";
+	exit 0;
+fi;
+
+DIR=pwd;
+USER="_www";
+GROUP="_www";
+
+bool="n";
+echo -n "Warning: This will set permissions and owner on ${DIR} Are you sure? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+
+	echo "Setting permissions";
+	find . -type d -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod -R 775 {} \;
+	find . -type f -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod 664 {} \;
+	find . -type l -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod 664 {} \;
+	sudo -u root chown -R ${USER}:${GROUP} .
+fi
+
+echo "Completed.";

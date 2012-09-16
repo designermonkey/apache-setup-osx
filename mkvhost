@@ -1,0 +1,91 @@
+#!/bin/bash
+
+################################################################################
+###	CHECK SCRIPT INVOCATION AND SET CONSTANTS
+if [[ $(whoami) != "root" ]]; then
+	echo "ERROR! Script needs root access. Please run as sudo";
+	exit 0;
+fi;
+if [[ $1 == "" ]]; then
+	echo "Usage:   mkvhostrepo <username> <vhostname>";
+	echo "Example: mkvhostrepo username www.example.com";
+	echo "         will create the virtual host for www.example.com in the correct user's Sites folder";
+	echo "         and set up a local repo";
+	exit 0;
+fi
+if [[ $2 == "" ]]; then
+	echo "Usage:   mkvhostrepo <username> <vhostname>";
+	echo "Example: mkvhostrepo www.example.com";
+	echo "         will create the virtual host for www.example.com in the correct user's Sites folder";
+	echo "         and set up a local repo";
+	exit 0;
+fi
+
+USERNAME=$1;
+VIRTUALHOST=$2;
+
+VHOSTS="/etc/apache2/vhosts";
+SITES="/Users/${USERNAME}/Sites";
+
+################################################################################
+### CREATE THE HTTPD VIRTUAL HOST
+if [[ -e ${VHOSTS}/${VIRTUALHOST}.conf ]]; then
+	echo "${VHOSTS}/${VIRTUALHOST}.conf already exists. Skipping.";
+else
+	if [[ ! -e ${VHOSTS}/template.http ]]; then
+		echo "${VHOSTS}/template.http does not exist. Cannot create ${SITESENABLED}/${VIRTUALHOST}.";
+	else
+		cat ${VHOSTS}/template.http | sed "s/VHOSTNAME/${VIRTUALHOST}/g" | sed "s/USERNAME/${USERNAME}/g" | sed "s/MHOSTNAME/$(hostname)/g" > ${VHOSTS}/${VIRTUALHOST}.conf
+	fi
+fi
+if [[ grep "${VIRTUALHOST}" /etc/hosts ]]; then
+	echo "Hostname already in hosts file. Skipping."
+else
+	echo "${VIRTUALHOST}" >> /etc/hosts
+fi
+###	CREATE THE ERROR LOG FILE
+if [[ -e ${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log ]]; then
+	echo "${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log already exists. Skipping.";
+else
+	touch ${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log
+fi
+
+################################################################################
+### CREATE THE PHYSICAL VIRTUAL HOST
+bool="n";
+echo -n "Should I create ${SITES}/${VIRTUALHOST} folder for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+	if [[ -e ${SITES}/${VIRTUALHOST} ]]; then
+		echo "${SITES}/${VIRTUALHOST} already exists.";
+	else
+		mkdir -p ${SITES}/${VIRTUALHOST};
+		chmod -R 775 ${SITES}/${VIRTUALHOST};
+	fi
+fi
+### CREATE THE HTDOCS FOLDER
+bool="n";
+echo -n "Should I create ${SITES}/${VIRTUALHOST}/htdocs folder for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+	if [[ -e ${SITES}/${VIRTUALHOST}/htdocs ]]; then
+		echo "${SITES}/${VIRTUALHOST}/htdocs already exists.";
+	else
+		mkdir -p ${SITES}/${VIRTUALHOST}/htdocs;
+		chmod -R 775 ${SITES}/${VIRTUALHOST}/htdocs;
+	fi
+fi
+
+################################################################################
+### RELOAD APACHE
+bool="n";
+echo -n "Should I reload Apache for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+	echo "Running: sudo apachectl -k graceful";
+	apachectl -k graceful;
+fi
+
+################################################################################
+### FINISHED OUTPUT
+echo "Completed.";
