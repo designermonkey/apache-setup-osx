@@ -1,26 +1,62 @@
-#!/bin/sh
+#!/bin/bash
 
 ################################################################################
 ###	CHECK SCRIPT INVOCATION AND SET CONSTANTS
+################################################################################
+
+### CHECK FOR ROOT USER
 if [[ $(whoami) != "root" ]]; then
 	echo "ERROR! Script needs root access. Please run as sudo";
 	exit 0;
 fi;
 
-DIR=pwd;
-USER="_www";
-GROUP="_www";
+### ENSURE THAT THE SCRIPT IS CALLED WITH PARAMETERS
+if [[ $1 == "" ]]; then
+	echo "Usage:   fixperms <username> <path>";
+	echo "Example: mkvhostrepo username .";
+	echo "         will set permissions as username:_www on all files and folders within <path>";
+	echo "         and set file and folder permissions to 0775 0664";
+	echo "         Second parameter <path> is optionsl, defaults to .";
+	exit 0;
+fi
 
+### CHECK EXISTANCE OF SECOND PARAM
+if [[ $2 != "" ]]; then
+	DIR=$2;
+else
+	DIR=$(pwd);
+fi
+
+### CREATE VARIABLES
+USER=$1;
+GROUP="_www";
+REGEX=!\(.AppleDouble\|cache/*\|tmp/*\|logs/*\|.git\|.git*\);
+
+
+
+################################################################################
+###	RUN SCRIPT
+################################################################################
+
+### DOUBLE CHECK
 bool="n";
 echo -n "Warning: This will set permissions and owner on ${DIR} Are you sure? ";
 read bool;
 if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
 
 	echo "Setting permissions";
-	find . -type d -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod -R 775 {} \;
-	find . -type f -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod 664 {} \;
-	find . -type l -regex !\(.AppleDouble\|cache/*\|tmp/*\|logs/*\) -exec sudo -u root chmod 664 {} \;
-	sudo -u root chown -R ${USER}:${GROUP} .
+	find ${DIR} -type d -regex ${REGEX} -exec chmod -R 775 {} \;
+	find ${DIR} -type f -regex ${REGEX} -exec chmod 664 {} \;
+	find ${DIR} -type l -regex ${REGEX} -exec chmod 664 {} \;
+	sudo -u root chown -R ${USER}:${GROUP} ${DIR}
+else
+	exit 0;
 fi
+
+
+
+################################################################################
+### FINISHED OUTPUT
+################################################################################
 
 echo "Completed.";

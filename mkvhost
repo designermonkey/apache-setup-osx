@@ -2,10 +2,15 @@
 
 ################################################################################
 ###	CHECK SCRIPT INVOCATION AND SET CONSTANTS
+################################################################################
+
+### CHECK FOR ROOT USER
 if [[ $(whoami) != "root" ]]; then
 	echo "ERROR! Script needs root access. Please run as sudo";
 	exit 0;
 fi;
+
+### ENSURE THAT THE SCRIPT IS CALLED WITH PARAMETERS
 if [[ $1 == "" ]]; then
 	echo "Usage:   mkvhostrepo <username> <vhostname>";
 	echo "Example: mkvhostrepo username www.example.com";
@@ -21,14 +26,19 @@ if [[ $2 == "" ]]; then
 	exit 0;
 fi
 
+### CREATE VARIABLES
 USERNAME=$1;
 VIRTUALHOST=$2;
-
 VHOSTS="/etc/apache2/vhosts";
 SITES="/Users/${USERNAME}/Sites";
 
+
+
 ################################################################################
-### CREATE THE HTTPD VIRTUAL HOST
+### HTTPD VIRTUAL HOST
+################################################################################
+
+### CREATE THE VIRTUALHOST CONF
 if [[ -e ${VHOSTS}/${VIRTUALHOST}.conf ]]; then
 	echo "${VHOSTS}/${VIRTUALHOST}.conf already exists. Skipping.";
 else
@@ -38,11 +48,15 @@ else
 		cat ${VHOSTS}/template.http | sed "s/VHOSTNAME/${VIRTUALHOST}/g" | sed "s/USERNAME/${USERNAME}/g" | sed "s/MHOSTNAME/$(hostname)/g" > ${VHOSTS}/${VIRTUALHOST}.conf
 	fi
 fi
-if [[ grep "${VIRTUALHOST}" /etc/hosts ]]; then
+
+### CREATE A RECORD IN HOSTS FILE
+grep "127.0.0.1 ${VIRTUALHOST}" /etc/hosts;
+if [[ $? -eq 0 ]]; then
 	echo "Hostname already in hosts file. Skipping."
 else
-	echo "${VIRTUALHOST}" >> /etc/hosts
+	echo "127.0.0.1 ${VIRTUALHOST}" >> /etc/hosts
 fi
+
 ###	CREATE THE ERROR LOG FILE
 if [[ -e ${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log ]]; then
 	echo "${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log already exists. Skipping.";
@@ -50,34 +64,47 @@ else
 	touch ${SITES}/__logs/vhosts/${VIRTUALHOST}-error.log
 fi
 
+
+
 ################################################################################
-### CREATE THE PHYSICAL VIRTUAL HOST
-bool="n";
-echo -n "Should I create ${SITES}/${VIRTUALHOST} folder for you? ";
-read bool;
-if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
-	if [[ -e ${SITES}/${VIRTUALHOST} ]]; then
-		echo "${SITES}/${VIRTUALHOST} already exists.";
-	else
-		mkdir -p ${SITES}/${VIRTUALHOST};
-		chmod -R 775 ${SITES}/${VIRTUALHOST};
+### FILESYSTEM VIRTUAL HOST
+################################################################################
+
+if [[ ! -e ${SITES}/${VIRTUALHOST} ]]; then
+
+	### CREATE THE VIRTUALHOST
+	bool="n";
+	echo -n "Should I create ${SITES}/${VIRTUALHOST} folder for you? ";
+	read bool;
+	if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+		if [[ -e ${SITES}/${VIRTUALHOST} ]]; then
+			echo "${SITES}/${VIRTUALHOST} already exists.";
+		else
+			mkdir -p ${SITES}/${VIRTUALHOST};
+			chmod -R 775 ${SITES}/${VIRTUALHOST};
+		fi
 	fi
-fi
-### CREATE THE HTDOCS FOLDER
-bool="n";
-echo -n "Should I create ${SITES}/${VIRTUALHOST}/htdocs folder for you? ";
-read bool;
-if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
-	if [[ -e ${SITES}/${VIRTUALHOST}/htdocs ]]; then
-		echo "${SITES}/${VIRTUALHOST}/htdocs already exists.";
-	else
-		mkdir -p ${SITES}/${VIRTUALHOST}/htdocs;
-		chmod -R 775 ${SITES}/${VIRTUALHOST}/htdocs;
+
+	### CREATE THE HTDOCS FOLDER
+	bool="n";
+	echo -n "Should I create ${SITES}/${VIRTUALHOST}/htdocs folder for you? ";
+	read bool;
+	if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+		if [[ -e ${SITES}/${VIRTUALHOST}/htdocs ]]; then
+			echo "${SITES}/${VIRTUALHOST}/htdocs already exists.";
+		else
+			mkdir -p ${SITES}/${VIRTUALHOST}/htdocs;
+			chmod -R 775 ${SITES}/${VIRTUALHOST}/htdocs;
+		fi
 	fi
 fi
 
+
+
 ################################################################################
 ### RELOAD APACHE
+################################################################################
+
 bool="n";
 echo -n "Should I reload Apache for you? ";
 read bool;
@@ -86,6 +113,10 @@ if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" |
 	apachectl -k graceful;
 fi
 
+
+
 ################################################################################
 ### FINISHED OUTPUT
+################################################################################
+
 echo "Completed.";
