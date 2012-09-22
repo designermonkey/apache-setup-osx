@@ -30,7 +30,6 @@ fi
 ### CREATE VARIABLES
 USER=$1;
 GROUP="_www";
-REGEX=!\(.AppleDouble\|cache/*\|tmp/*\|logs/*\|.git\|.git*\);
 
 
 
@@ -44,11 +43,24 @@ echo -n "Warning: This will set permissions and owner on ${DIR} Are you sure? ";
 read bool;
 if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
 
-	echo "Setting permissions";
-	find ${DIR} -type d -regex ${REGEX} -exec chmod -R 775 {} \;
-	find ${DIR} -type f -regex ${REGEX} -exec chmod 664 {} \;
-	find ${DIR} -type l -regex ${REGEX} -exec chmod 664 {} \;
-	sudo -u root chown -R ${USER}:${GROUP} ${DIR}
+	echo "Setting owner:group to ${USER}:${GROUP} on ${DIR}";
+	chown -R ${USER}:${GROUP} ${DIR};
+
+	echo "Setting permissions on ${DIR}";
+	while IFS= read -r N;
+	do
+		chmod -R 775 "${N}" || echo "Failed on ${N}";
+	done < <(find ${DIR} -type d);
+
+	while IFS= read -r N;
+	do
+		chmod 664 "${N}" || echo "Failed on ${N}";
+	done < <(find ${DIR} -type f);
+
+	while IFS= read -r N;
+	do
+		chmod 664 "${N}" || echo "Failed on ${N}";
+	done < <(find ${DIR} -type l);
 else
 	exit 0;
 fi
