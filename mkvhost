@@ -99,6 +99,13 @@ if [[ ! -e ${SITES}/${VIRTUALHOST} ]]; then
 	fi
 fi
 
+### SET PERMISSIONS ON FILES AND FOLDERS
+echo -n "Should I run owner and permissions fixes on ${SITES}/${VIRTUALHOST} folder for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+	fixperms ${USERNAME} ${SITES}/${VIRTUALHOST};
+fi
+
 
 
 ################################################################################
