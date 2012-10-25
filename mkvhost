@@ -32,6 +32,14 @@ VIRTUALHOST=$2;
 VHOSTS="/etc/apache2/vhosts";
 SITES="/Users/${USERNAME}/Sites";
 
+IPV4="127.0.0.1";
+IPV6="fe80::1%lo0";
+
+DBUSER="root";
+DBPASSWORD="br-6004w-g1";
+DBPREFIX="symphony_";
+DBNAME=${VIRTUALHOST//'.'/""};
+SQL="CREATE DATABASE ${DBPREFIX}${DBNAME}";
 
 
 ################################################################################
@@ -54,7 +62,11 @@ grep "127.0.0.1 ${VIRTUALHOST}" /etc/hosts;
 if [[ $? -eq 0 ]]; then
 	echo "Hostname already in hosts file. Skipping."
 else
-	echo "127.0.0.1 ${VIRTUALHOST}" >> /etc/hosts
+	if [[ ${IPV6} != "" ]]; then
+		echo "${IPV6} ${VIRTUALHOST}" >> /etc/hosts
+	fi
+	echo "${IPV4} ${VIRTUALHOST}" >> /etc/hosts
+	echo "";
 fi
 
 ###	CREATE THE ERROR LOG FILE
@@ -106,6 +118,17 @@ if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" |
 	fixperms ${USERNAME} ${SITES}/${VIRTUALHOST};
 fi
 
+
+
+################################################################################
+### FILESYSTEM VIRTUAL HOST
+################################################################################
+
+echo -n "Should I run create a database for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+	mysql -u ${DBUSER} -p${DBPASSWORD} -e "${SQL}";
+fi
 
 
 ################################################################################
