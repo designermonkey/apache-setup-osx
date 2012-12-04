@@ -13,10 +13,6 @@ fi;
 ### ENSURE THAT THE SCRIPT IS CALLED WITH PARAMETERS
 if [[ $1 == "" ]]; then
 	echo "Usage:   fixperms <username> <path>";
-	echo "Example: mkvhostrepo username .";
-	echo "         will set permissions as username:_www on all files and folders within <path>";
-	echo "         and set file and folder permissions to 0775 0664";
-	echo "         Second parameter <path> is optionsl, defaults to .";
 	exit 0;
 fi
 
@@ -56,11 +52,6 @@ if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" |
 	do
 		chmod 664 "${N}" || echo "Failed on ${N}";
 	done < <(find ${DIR} -type f);
-
-	while IFS= read -r N;
-	do
-		chmod 664 "${N}" || echo "Failed on ${N}";
-	done < <(find ${DIR} -type l);
 else
 	exit 0;
 fi
